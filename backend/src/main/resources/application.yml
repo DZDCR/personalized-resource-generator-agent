@@ -1,0 +1,64 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: learning-agent-system
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/learning
+    username: learning
+    password: learning123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+    neo4j:
+      uri: bolt://localhost:7687
+      username: neo4j
+      password: learning123
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:sk-placeholder}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+
+spring.rabbitmq:
+  host: localhost
+  port: 5672
+  username: learning
+  password: learning123
+
+app:
+  qdrant:
+    host: localhost
+    port: 6333
+    collection: learning_resources
+  llm:
+    # 模型路由：长文档用大模型，画像/短对话用小模型
+    heavy-model: gpt-4o
+    light-model: gpt-4o-mini
+    max-retries: 3
+    timeout-sec: 120
+  resources:
+    # 生成资源的根目录
+    storage-root: ./data/resources
+  path:
+    checkpoint-pass-rate: 0.8
+
+logging:
+  level:
+    com.example.learning: DEBUG

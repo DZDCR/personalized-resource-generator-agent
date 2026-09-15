@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: learning-postgres
+    environment:
+      POSTGRES_DB: learning
+      POSTGRES_USER: learning
+      POSTGRES_PASSWORD: learning123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learning"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: learning-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: learning-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: learning
+      RABBITMQ_DEFAULT_PASS: learning123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  neo4j:
+    image: neo4j:5.20
+    container_name: learning-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/learning123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.0
+    container_name: learning-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: learning-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/learning
+      SPRING_DATASOURCE_USERNAME: learning
+      SPRING_DATASOURCE_PASSWORD: learning123
+      SPRING_DATA_NEO4J_URI: bolt://neo4j:7687
+      SPRING_DATA_NEO4J_USERNAME: neo4j
+      SPRING_DATA_NEO4J_PASSWORD: learning123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_REDIS_HOST: redis
+      APP_QDRANT_HOST: qdrant
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: learning-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
+  redis_data:
+  neo4j_data:
+  qdrant_data:
