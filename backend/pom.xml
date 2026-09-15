@@ -62,6 +62,17 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- R2DBC SPI (needed to prevent class loading errors during autoconfig condition evaluation) -->
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-spi</artifactId>
+        </dependency>
+        <!-- Jakarta JSON-B API (referenced by Spring AI annotations) -->
+        <dependency>
+            <groupId>jakarta.json.bind</groupId>
+            <artifactId>jakarta.json.bind-api</artifactId>
+        </dependency>
+
         <!-- Spring AI -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
@@ -97,6 +108,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>

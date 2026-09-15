@@ -3,10 +3,13 @@ package com.example.learning.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
@@ -26,15 +29,18 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(createHandler(), "/ws/progress")
-                .setHandshakeHandler(new DefaultHandshakeHandler() {
+                .addInterceptors(new HandshakeInterceptor() {
                     @Override
-                    protected Map<String, Object> getAttributes(
-                            org.springframework.http.server.ServerHttpRequest request) {
-                        Map<String, Object> attrs = new java.util.HashMap<>(super.getAttributes(request));
+                    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
+                            WebSocketHandler wsHandler, Map<String, Object> attributes) {
                         UriComponentsBuilder builder = UriComponentsBuilder.fromUri(request.getURI());
                         String taskId = builder.build().getQueryParams().getFirst("taskId");
-                        attrs.put("taskId", taskId);
-                        return attrs;
+                        attributes.put("taskId", taskId);
+                        return true;
+                    }
+                    @Override
+                    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
+                            WebSocketHandler wsHandler, Exception exception) {
                     }
                 })
                 .setAllowedOrigins("*");

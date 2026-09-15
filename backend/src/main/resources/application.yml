@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration
+      - org.springframework.boot.autoconfigure.r2dbc.R2dbcTransactionManagerAutoConfiguration
   application:
     name: learning-agent-system
   threads:
