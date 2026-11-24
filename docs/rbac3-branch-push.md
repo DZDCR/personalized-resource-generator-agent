@@ -1,8 +1,11 @@
 # RBAC3 分支推送指南
 
 > 目标仓库：<https://github.com/DZDCR/personalized-resource-generator-agent>
-> 建议分支：`feat/rbac3-auth`
+> 目标分支：`RBAC`（远程已存在，包含“实时聊天”提交）
 > 建议提交：`feat(auth): 新增 RBAC3 身份认证与权限管理模块`
+
+> 注意：远程 `RBAC` 已有历史提交，本地 `RBAC` 已合并 `origin/RBAC`，应使用普通 push；
+> **不要 force push**，否则会覆盖远程实时聊天功能。
 
 ## 1. 推送前检查
 
@@ -40,15 +43,16 @@ docs/screenshots/rbac/**
 README.md
 ```
 
-## 2. 从 main 切出功能分支
+## 2. 准备并合并目标分支
 
 ```bash
-git checkout main
-git pull --rebase origin main
-git checkout -b feat/rbac3-auth
+git fetch origin
+git switch RBAC                 # 本地已存在则直接切换
+git merge origin/RBAC --no-edit # 保留远程已有的实时聊天提交
 ```
 
-> 项目规范见 `docs/git-guide.md`：`main` 受保护，功能分支使用 `feat/描述`，合并走 PR + Squash。
+当前本地 `RBAC` 已完成上述合并，直接推送即可。若远程 `RBAC` 在推送前又有新提交，
+先 `git pull --rebase origin RBAC`，解决冲突并重新测试后再推送。
 
 ## 3. 提交
 
@@ -86,7 +90,7 @@ GitHub 已不再接受账号密码，HTTPS 推送使用 **PAT**（Fine-grained t
 git remote -v
 # origin  https://github.com/DZDCR/personalized-resource-generator-agent.git
 
-git push -u origin feat/rbac3-auth
+git push -u origin RBAC
 ```
 
 首次推送会弹出凭据窗口：
@@ -98,7 +102,7 @@ git push -u origin feat/rbac3-auth
 
 ```bash
 git remote set-url origin https://<TOKEN>@github.com/DZDCR/personalized-resource-generator-agent.git
-git push -u origin feat/rbac3-auth
+git push -u origin RBAC
 # 推送后建议改回无 token 的 URL
 git remote set-url origin https://github.com/DZDCR/personalized-resource-generator-agent.git
 ```
@@ -110,7 +114,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 # 把 ~/.ssh/id_ed25519.pub 添加到 GitHub → Settings → SSH and GPG keys
 
 git remote set-url origin git@github.com:DZDCR/personalized-resource-generator-agent.git
-git push -u origin feat/rbac3-auth
+git push -u origin RBAC
 ```
 
 ## 6. 没有仓库写权限时：Fork + PR
@@ -122,10 +126,10 @@ git push -u origin feat/rbac3-auth
 
 ```bash
 git remote add fork https://github.com/<你的账号>/personalized-resource-generator-agent.git
-git push -u fork feat/rbac3-auth
+git push -u fork RBAC
 ```
 
-3. 打开 GitHub 页面，从 `<你的账号>:feat/rbac3-auth` 向 `DZDCR:main` 发起 Pull Request。
+3. 打开 GitHub 页面，从 `<你的账号>:RBAC` 向 `DZDCR:main` 发起 Pull Request。
 4. PR 描述中附上：
 
 ```text
@@ -141,13 +145,13 @@ git push -u fork feat/rbac3-auth
 ```bash
 git log --oneline -3
 git show --stat HEAD
-git ls-remote --heads origin feat/rbac3-auth
+git ls-remote --heads origin RBAC
 ```
 
 打开 GitHub 分支页面：
 
 ```text
-https://github.com/DZDCR/personalized-resource-generator-agent/tree/feat/rbac3-auth
+https://github.com/DZDCR/personalized-resource-generator-agent/tree/RBAC
 ```
 
 ## 8. 常见问题
@@ -159,11 +163,11 @@ https://github.com/DZDCR/personalized-resource-generator-agent/tree/feat/rbac3-a
 | `Updates were rejected` | `git pull --rebase origin main` 后重新 push；不要 force push 覆盖他人提交 |
 | 误提交 `target/` / `node_modules/` | `git rm -r --cached target node_modules dist` 后重新提交，确认 `.gitignore` 生效 |
 | 想丢弃本地提交 | `git reset --soft HEAD~1` 后重新组织提交（不要影响远程分支） |
-| 分支名写错 | `git branch -m feat/rbac3-auth`，已推送则删除远程旧分支再推新分支 |
+| 分支名写错 | `git branch -m RBAC`，已推送则删除远程旧分支再推新分支 |
 
 ## 9. 当前仓库建议
 
-- 分支：`feat/rbac3-auth`
+- 分支：`RBAC`
 - 基线：`main`
 - 合并方式：Squash & Merge
 - 合并前必须通过：
