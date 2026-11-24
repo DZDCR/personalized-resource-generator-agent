@@ -213,7 +213,8 @@ public class ConstraintService {
             throw new BizException(AuthCodes.BAD_REQUEST, "存在无效的角色 ID");
         }
         int maxRoles = request.maxRoles() == null ? 1 : request.maxRoles();
-        if (maxRoles < 1 || maxRoles >= request.roleIds().size()) {
+        int distinctRoles = new LinkedHashSet<>(request.roleIds()).size();
+        if (maxRoles < 1 || maxRoles >= distinctRoles) {
             throw new BizException(AuthCodes.BAD_REQUEST, "允许角色数必须大于等于 1 且小于约束角色总数");
         }
     }

@@ -223,7 +223,7 @@ public class AuthDataInitializer implements ApplicationRunner {
         identityRepository.save(identity);
 
         log.info("demo accounts seeded: admin / sysadmin / auditor / teacher / student / reviewer / ops / sso_user");
-        log.info("demo admin password: Admin@12345");
+        log.info("demo credentials are documented in README (development only)");
     }
 
     private AuthUser user(String username, String rawPassword, String displayName,

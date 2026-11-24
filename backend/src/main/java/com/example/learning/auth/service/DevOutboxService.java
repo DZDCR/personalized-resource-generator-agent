@@ -1,7 +1,5 @@
 package com.example.learning.auth.service;
 
-import com.example.learning.auth.dto.AuthViews.SendCodeView;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -15,7 +13,6 @@ import java.util.List;
  * 不应把验证码回显给客户端。
  */
 @Service
-@RequiredArgsConstructor
 public class DevOutboxService {
 
     private static final int MAX_MESSAGES = 50;
@@ -34,10 +31,5 @@ public class DevOutboxService {
 
     public record DevMessage(String channel, String target, String scene, String code,
                              Instant expiresAt, Instant createdAt) {
-    }
-
-    /** 便于控制器判断是否允许暴露发件箱。 */
-    public SendCodeView view(String message, String debugCode, int expiresIn) {
-        return new SendCodeView(true, message, debugCode, expiresIn);
     }
 }

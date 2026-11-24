@@ -27,7 +27,7 @@ public class AuthRefreshToken {
     private Long userId;
 
     /** 会话激活角色编码，逗号分隔；刷新时恢复并按 DSD 重新校验。 */
-    @Column(length = 512)
+    @Column(length = 1024)
     private String activeRoleCodes;
 
     @Column(nullable = false)

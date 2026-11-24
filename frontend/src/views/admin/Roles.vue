@@ -35,11 +35,12 @@
       </el-table-column>
       <el-table-column label="操作" width="250" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openPermissions(row)">分配权限</el-button>
           <template v-if="canWrite">
+            <el-button link type="primary" @click="openPermissions(row)">分配权限</el-button>
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" :disabled="row.builtIn" @click="remove(row)">删除</el-button>
           </template>
+          <span v-else class="muted">只读</span>
         </template>
       </el-table-column>
     </el-table>
