@@ -5,6 +5,7 @@
         <el-menu-item index="/">对话学习</el-menu-item>
         <el-menu-item index="/im">班级聊天</el-menu-item>
         <el-menu-item index="/resources">学习资源</el-menu-item>
+        <el-menu-item index="/upload">资料上传</el-menu-item>
         <el-menu-item index="/path">学习路径</el-menu-item>
         <el-menu-item index="/dashboard">效果评估</el-menu-item>
       </el-menu>

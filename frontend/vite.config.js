@@ -21,6 +21,13 @@ export default defineConfig({
         target: 'ws://localhost:8080',
         ws: true,
         changeOrigin: true
+      },
+      // tusd 直连：开发期浏览器仍以 5173 为同源；
+      // xfwd 让 tusd 生成的 uploadUrl 指回 5173，避免跨域
+      '/files': {
+        target: 'http://localhost:1080',
+        changeOrigin: false,
+        xfwd: true
       }
     }
   }
