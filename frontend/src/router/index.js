@@ -9,6 +9,7 @@ const routes = [
   { path: '/sso/callback', name: 'sso-callback', component: () => import('../views/auth/SsoCallback.vue'), meta: { public: true } },
 
   { path: '/', name: 'chat', component: () => import('../views/Chat.vue'), meta: { requiresAuth: true, title: '对话学习' } },
+  { path: '/im', name: 'im', component: () => import('../views/RealtimeChat.vue'), meta: { requiresAuth: true, title: '班级聊天' } },
   { path: '/resources', name: 'resources', component: () => import('../views/Resources.vue'), meta: { requiresAuth: true, title: '学习资源' } },
   { path: '/path', name: 'path', component: () => import('../views/PathMap.vue'), meta: { requiresAuth: true, title: '学习路径' } },
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue'), meta: { requiresAuth: true, title: '效果评估' } },

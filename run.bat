@@ -4,6 +4,10 @@ REM Requires: Node 20+ (frontend), JDK 21 + Maven 3.9+ (backend), Docker (infra)
 
 cd /d "%~dp0"
 
+REM Node.js default install directories may not be in PATH.
+if exist "C:\Program Files\nodejs\npm.cmd" set "PATH=C:\Program Files\nodejs;%PATH%"
+if exist "%LocalAppData%\Programs\nodejs\npm.cmd" set "PATH=%LocalAppData%\Programs\nodejs;%PATH%"
+
 :MENU
 cls
 echo ========================================
@@ -15,6 +19,7 @@ echo  [3] Exit
 echo ========================================
 set "CHOICE="
 set /p CHOICE="Select [1-3]: "
+if not defined CHOICE goto START
 if "%CHOICE%"=="1" goto START
 if "%CHOICE%"=="2" goto CREATE
 if "%CHOICE%"=="3" exit /b 0
@@ -35,7 +40,7 @@ if %errorlevel%==0 (
 where mvn >nul 2>nul
 if %errorlevel%==0 (
   echo [2/4] Starting backend on port 8080 ...
-  start "learning-backend" cmd /k "cd /d %~dp0backend && set OPENAI_API_KEY=sk-xxxx && mvn spring-boot:run"
+  start "learning-backend" cmd /k "cd /d %~dp0backend && set OPENAI_API_KEY=sk-xxxx && powershell -NoProfile -ExecutionPolicy Bypass -File run.ps1"
 ) else (
   echo [2/4] mvn not found - skip backend
 )

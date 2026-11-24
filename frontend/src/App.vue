@@ -15,6 +15,9 @@
         <el-menu-item index="/">
           <span class="nav-dot" />对话学习
         </el-menu-item>
+        <el-menu-item index="/im">
+          <span class="nav-dot" />班级聊天
+        </el-menu-item>
         <el-menu-item index="/resources">
           <span class="nav-dot" />学习资源
         </el-menu-item>
