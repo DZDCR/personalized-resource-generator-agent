@@ -64,6 +64,9 @@ app:
     storage-root: ./data/resources
   path:
     checkpoint-pass-rate: 0.8
+  im:
+    # 课程演示：首次启动自动创建三名学生与一个课程群；生产可改为 false
+    seed-demo: true
 
 logging:
   level:

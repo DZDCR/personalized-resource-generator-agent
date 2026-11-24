@@ -11,14 +11,34 @@
 | 个性化学习路径 | 基于知识图谱拓扑排序 + 画像匹配资源推荐 | 骨架 |
 | 智能辅导 | 概念 / 计算 / 代码三类问题的多模态解答 | 骨架 |
 | 学习效果评估 | 周评估 + 画像回写 + 路径动态调整 | 骨架 |
+| 实时聊天 | 课程群 / 私聊、WebSocket 实时收发、离线补拉、未读与多端同步 | MVP 可用 |
 
 ## 技术栈
 
 - 后端：Java 21 + Spring Boot 3.3 + Spring AI + Spring Data JPA + Qdrant + Neo4j + Redis + RabbitMQ
-- 前端：Vue3 + Vite + Pinia + Element Plus + WebSocket 进度推送
+- 前端：Vue3 + Vite + Pinia + Element Plus + WebSocket（进度推送 + 实时聊天）
 - 基础设施：PostgreSQL / Redis / RabbitMQ / Neo4j / Qdrant（docker-compose 一键启动）
 
 ## 快速开始
+
+### 一键启动聊天演示（无需 Docker）
+
+双击项目根目录的 `start-chat.bat`。脚本会：
+
+1. 启动后端 `demo` profile（H2 内存库，端口 8080）
+2. 启动 Vite 前端（端口 5173）
+3. 自动打开 `http://localhost:5173/im`
+
+> `http://localhost:8080` 是 API 服务，不是聊天页面；聊天页面必须访问 **5173** 端口。首次启动等待约 15 秒，若浏览器打开过早刷新即可。
+
+如果已经用 `run.bat` 启动了后端和 Docker，但日志提示 `node not found - skip frontend`，单独运行：
+
+```bat
+cd E:\软件工程搭建\软件工程
+start-frontend.bat
+```
+
+然后打开 `http://localhost:5173/im`。
 
 ### 方式一：一键启动脚本
 
@@ -41,7 +61,10 @@ export OPENAI_API_KEY=sk-xxxx   # 你的 OpenAI 或兼容 API Key
 
 # 3. 启动后端（需 JDK 21 + Maven 3.9+）
 cd backend
-mvn spring-boot:run
+# Windows
+run.bat
+# macOS / Linux
+# chmod +x run.sh && ./run.sh
 
 # 4. 启动前端（需 Node 20+）
 cd frontend
@@ -49,7 +72,27 @@ npm install
 npm run dev
 ```
 
-访问 `http://localhost:5173`。
+访问 `http://localhost:5173`，左侧进入 **班级聊天**（`/im`）。首次启动会自动创建用户A / 用户B / 用户C 和“示例群聊”，可通过左上角身份下拉切换学生，验证多端实时收发；也可以用 `/im?student=2` 直接指定身份，同时开多个标签页联调。
+
+### 无 Docker 演示聊天（H2）
+
+只想先看聊天功能时，不需要启动 PostgreSQL 等基础设施：
+
+```bat
+:: Windows
+cd backend
+run-demo.bat
+```
+
+```bash
+# macOS / Linux
+chmod +x backend/run-demo.sh
+backend/run-demo.sh
+```
+
+再按上面的方式启动前端，打开 `http://localhost:5173/im`。演示数据保存在内存 H2 中，重启即重置。
+
+> 如果 `mvn spring-boot:run` 报 `ClassNotFoundException: com.example.learning.LearningApplication`，请改用 `run-demo` 脚本。项目路径含中文时，Spring Boot Maven Plugin 的 `@argfile` 可能丢失 `target/classes`；脚本已改为直接读取 UTF-8 classpath 后用 `java -cp` 启动。
 
 ### Docker 完整部署
 
@@ -68,6 +111,7 @@ docker compose -f docker/docker-compose.yml up -d
 | [API 接口规范](docs/api-spec.md) | 10 个接口定义、请求/响应示例、WebSocket 进度推送、状态码 |
 | [数据字典](docs/data-dictionary.md) | 9 张数据表结构、列约束、索引设计、关联关系 |
 | [Git 协作规范](docs/git-guide.md) | 分支模型、提交规范、PR 规范、工作流示例 |
+| [实时聊天接口](docs/im-api.md) | 聊天数据模型、REST API、WebSocket 协议与演示方式 |
 | [成文标准](docs/成文标准.md) | 五类文档的质量要求与评分对照表 |
 
 ## 目录结构
@@ -76,6 +120,8 @@ docker compose -f docker/docker-compose.yml up -d
 learning-agent-system/
 ├── backend/                             # Spring Boot 后端
 │   ├── pom.xml                          # Maven 依赖（Spring AI + JPA + Redis + ...）
+│   ├── run.bat / run.ps1 / run.sh       # 编译 + java -cp 启动（规避中文路径 argfile 问题）
+│   ├── run-demo.bat / run-demo.ps1 / run-demo.sh  # 一键 H2 演示（demo profile）
 │   └── src/main/
 │       ├── java/.../
 │       │   ├── agent/                   # ★ 多智能体层（9 个 Agent + Orchestrator）
@@ -89,26 +135,28 @@ learning-agent-system/
 │       │   │   ├── LlmConfig.java       #   ChatClient 双模型配置
 │       │   │   ├── AsyncConfig.java     #   虚拟线程执行器
 │       │   │   ├── PromptLoader.java    #   Prompt 热更新加载器
-│       │   │   ├── WebSocketConfig.java #   WebSocket 进度端点
+│       │   │   ├── WebSocketConfig.java #   WebSocket 进度 + IM 端点
+│       │   │   ├── ImWebSocketHandler.java # 聊天 WebSocket 协议
 │       │   │   └── TaskProgressBroadcaster.java  # 进度广播服务
-│       │   ├── controller/              # 8 个 REST Controller
-│       │   ├── dto/                     # 4 个请求 + 3 个响应 Record
-│       │   ├── entity/                  # 9 个 JPA Entity
-│       │   ├── repository/              # 8 个 Spring Data 接口
-│       │   ├── service/                 # 8 个 Service（Profile/Path/Resource/Tutor/...）
+│       │   ├── controller/              # 9 个 REST Controller
+│       │   ├── dto/                     # 请求/响应 Record（含 im 子包）
+│       │   ├── entity/                  # 12 个 JPA Entity
+│       │   ├── repository/              # 11 个 Spring Data 接口
+│       │   ├── service/                 # 10 个 Service（Profile/Path/Resource/Im/...）
 │       │   ├── job/                     # 3 个定时任务骨架
 │       │   └── common/                  # ApiResult / BizException / 全局异常处理
 │       └── resources/
 │           ├── application.yml          # 数据库/Redis/Neo4j/Qdrant/Spring AI 配置
+│           ├── application-demo.yml     # 无 Docker 演示：H2 + 自动种子数据
 │           └── prompt/                  # 9 个 Prompt 模板（.md，支持热更新）
 │
 ├── frontend/                            # Vue3 + Vite 前端
 │   ├── package.json / vite.config.js / index.html
 │   └── src/
-│       ├── views/                       # Chat / Resources / PathMap / Dashboard
+│       ├── views/                       # Chat / RealtimeChat / Resources / PathMap / Dashboard
 │       ├── components/                  # ProgressBar / MindmapViewer / CodeBlock / QuizCard / PathTimeline / WsProgress
-│       ├── stores/                      # Pinia: chat / resource / path / assessment
-│       ├── api/                         # Axios 封装 + 8 个 API 函数
+│       ├── stores/                      # Pinia: chat / im / resource / path / assessment
+│       ├── api/                         # Axios 封装 + 聊天等 API 函数
 │       ├── router/                      # Vue Router 路由配置
 │       └── styles/                      # 全局样式
 │
@@ -117,15 +165,18 @@ learning-agent-system/
 │   ├── Dockerfile.backend
 │   └── Dockerfile.frontend + nginx.conf
 │
-├── docs/                                # 标准规范文档（6 份）
+├── docs/                                # 标准规范与聊天实现文档（7 份）
 │   ├── architecture.md                  # 架构设计
 │   ├── dev-guide.md                     # 开发规范
 │   ├── api-spec.md                      # API 接口规范
 │   ├── data-dictionary.md               # 数据字典
 │   ├── git-guide.md                     # Git 协作规范
+│   ├── im-api.md                        # 实时聊天接口与协议
 │   └── 成文标准.md                       # 文档质量标准
 │
-├── run.bat / run.sh                     # 一键启动脚本
+├── start-chat.bat                       # 一键启动聊天演示（后端 H2 + 前端 + 浏览器）
+├── start-frontend.bat                   # 只启动前端（自动补 Node.js PATH）
+├── run.bat / run.sh                     # 一键启动完整系统
 ├── README.md
 └── .gitignore
 ```
@@ -152,3 +203,5 @@ cd backend && mvn test
 | 画像路径写入 | ProfileService.setAtPath() 实现 |
 | 数据库迁移 | 引入 Flyway/Liquibase 管理 DDL |
 | Swagger | 集成 springdoc-openapi 自动生成接口文档 |
+| 聊天大群扩散 | 当前为单实例 MVP；大群可演进为读扩散 + 在线信号推送 |
+| 聊天推送 | 离线厂商推送、图片/文件消息、消息搜索尚未接入 |
