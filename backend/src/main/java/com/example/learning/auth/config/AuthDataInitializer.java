@@ -126,15 +126,14 @@ public class AuthDataInitializer implements ApplicationRunner {
         return entity;
     }
 
+    /**
+     * 只保留三个内置基线角色；教师、审核员、发布员、运营等业务角色由管理员在权限中心自建。
+     * 这样既保留最小可用的管理闭环，也给课程演示留出“自己建角色”的操作空间。
+     */
     private void seedRoles() {
         role("ROLE_STUDENT", "学生", "基础学习角色", null, null, null, 10);
-        role("ROLE_TEACHER", "教师", "继承学生权限，可生成资源与调整路径", "ROLE_STUDENT", null, null, 20);
-        role("ROLE_CONTENT_REVIEWER", "内容审核员", "审核资源质量，继承教师权限", "ROLE_TEACHER", null, null, 30);
-        role("ROLE_PUBLISHER", "资源发布员", "发布审核通过的资源", "ROLE_TEACHER", null, "ROLE_TEACHER", 40);
-        role("ROLE_OPS_ADMIN", "运营管理员", "运营与用户支持", "ROLE_CONTENT_REVIEWER", null, null, 50);
-        role("ROLE_SYS_ADMIN", "系统管理员", "RBAC 管理", null, 3, null, 60);
-        role("ROLE_SUPER_ADMIN", "超级管理员", "全部权限，继承系统管理员", "ROLE_SYS_ADMIN", 2, null, 70);
-        role("ROLE_SECURITY_AUDITOR", "安全审计员", "独立审计角色", null, 2, null, 80);
+        role("ROLE_SYS_ADMIN", "系统管理员", "系统管理与 RBAC 管理，拥有全部权限", null, 3, null, 60);
+        role("ROLE_SECURITY_AUDITOR", "安全审计员", "只读审计角色", null, 2, null, 80);
     }
 
     private AuthRole role(String code, String name, String description, String parentCode,
@@ -155,16 +154,8 @@ public class AuthDataInitializer implements ApplicationRunner {
 
     private void seedRolePermissions() {
         grant("ROLE_STUDENT", "resource:read", "path:read", "profile:read", "profile:write");
-        grant("ROLE_TEACHER", "resource:generate", "path:write");
-        grant("ROLE_CONTENT_REVIEWER", "resource:review");
-        grant("ROLE_PUBLISHER", "resource:publish");
-        grant("ROLE_OPS_ADMIN", "system:ops", "resource:delete", "rbac:user:read",
-                "rbac:audit:read", "rbac:admin");
-        grant("ROLE_SYS_ADMIN", "rbac:user:read", "rbac:user:write", "rbac:role:read", "rbac:role:write",
-                "rbac:permission:read", "rbac:permission:write", "rbac:constraint:read",
-                "rbac:constraint:write", "rbac:audit:read", "rbac:admin", "system:ops",
-                "resource:delete");
-        grant("ROLE_SUPER_ADMIN", permissions.keySet().toArray(String[]::new));
+        // 系统管理员是唯一的全权限内置角色，便于继续创建/授权自定义角色。
+        grant("ROLE_SYS_ADMIN", permissions.keySet().toArray(String[]::new));
         grant("ROLE_SECURITY_AUDITOR", "rbac:audit:read", "rbac:constraint:read",
                 "rbac:user:read", "rbac:permission:read", "rbac:role:read", "rbac:admin");
     }
@@ -200,20 +191,15 @@ public class AuthDataInitializer implements ApplicationRunner {
     }
 
     private void seedUsers() {
-        AuthUser admin = user("admin", "Admin@12345", "系统管理员", "admin@example.com", "13800000001",
-                "ROLE_SUPER_ADMIN");
+        user("admin", "Admin@12345", "系统管理员", "admin@example.com", "13800000001",
+                "ROLE_SYS_ADMIN");
         user("sysadmin", "SysAdmin@12345", "系统管理员（RBAC）", "sysadmin@example.com", "13800000002",
                 "ROLE_SYS_ADMIN");
         user("auditor", "Auditor@12345", "安全审计员", "auditor@example.com", "13800000003",
                 "ROLE_SECURITY_AUDITOR");
-        user("teacher", "Teacher@12345", "王老师", "teacher@example.com", "13800000004",
-                "ROLE_TEACHER");
-        user("student", "Student@12345", "李同学", "student@example.com", "13800000005",
+        user("student", "Student@12345", "李同学", "student@example.com", "13800000004",
                 "ROLE_STUDENT");
-        user("reviewer", "Reviewer@12345", "张审核", "reviewer@example.com", "13800000006",
-                "ROLE_TEACHER", "ROLE_CONTENT_REVIEWER", "ROLE_PUBLISHER");
-        user("ops", "Ops@12345", "运营小赵", "ops@example.com", "13800000007", "ROLE_OPS_ADMIN");
-        AuthUser ssoUser = user("sso_user", "Sso@12345", "统一身份用户", "sso@example.com", "13800000008",
+        AuthUser ssoUser = user("sso_user", "Sso@12345", "统一身份用户", "sso@example.com", "13800000005",
                 "ROLE_STUDENT");
 
         AuthIdentity identity = new AuthIdentity();
@@ -222,7 +208,7 @@ public class AuthDataInitializer implements ApplicationRunner {
         identity.setUserId(ssoUser.getId());
         identityRepository.save(identity);
 
-        log.info("demo accounts seeded: admin / sysadmin / auditor / teacher / student / reviewer / ops / sso_user");
+        log.info("demo accounts seeded: admin / sysadmin / auditor / student / sso_user");
         log.info("demo credentials are documented in README (development only)");
     }
 
@@ -255,12 +241,10 @@ public class AuthDataInitializer implements ApplicationRunner {
     }
 
     private void seedConstraints() {
+        // 仅保留管理员/审计员这条静态互斥约束；DSD 由管理员按自建角色自行配置。
         constraint("SSD_ADMIN_AUDITOR", "管理员与审计员互斥", ConstraintType.SSD, 1,
                 "同一用户不能同时拥有系统管理员与安全审计员角色（静态职责分离）。",
                 "ROLE_SYS_ADMIN", "ROLE_SECURITY_AUDITOR");
-        constraint("DSD_MAKER_CHECKER", "审核与发布分离", ConstraintType.DSD, 1,
-                "单次会话不能同时激活内容审核员与资源发布员（动态职责分离，模拟 maker-checker）。",
-                "ROLE_CONTENT_REVIEWER", "ROLE_PUBLISHER");
     }
 
     private void constraint(String code, String name, ConstraintType type, int maxRoles,

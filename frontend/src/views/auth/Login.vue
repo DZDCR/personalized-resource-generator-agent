@@ -122,10 +122,10 @@
         <div class="demo-title">演示账号（开发模式）</div>
         <div class="demo-grid">
           <button type="button" @click="fillDemo('admin', 'Admin@12345')">admin / Admin@12345</button>
-          <button type="button" @click="fillDemo('reviewer', 'Reviewer@12345')">reviewer / Reviewer@12345</button>
           <button type="button" @click="fillDemo('student', 'Student@12345')">student / Student@12345</button>
+          <button type="button" @click="fillDemo('auditor', 'Auditor@12345')">auditor / Auditor@12345</button>
         </div>
-        <p>reviewer 拥有审核员+发布员角色，登录时会触发 DSD 角色选择。</p>
+        <p>仅内置学生、系统管理员、安全审计员三个角色；教师、审核员等请在权限中心自建。</p>
       </div>
     </section>
 

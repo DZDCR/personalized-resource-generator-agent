@@ -44,7 +44,8 @@ class AuthFlowIntegrationTest {
         JsonNode roles = getJson("/api/admin/roles", login.token());
         assertThat(roles.path("code").asInt()).isZero();
         assertThat(roles.path("data").isArray()).isTrue();
-        assertThat(roles.path("data").size()).isGreaterThanOrEqualTo(8);
+        assertThat(roles.path("data").size()).isGreaterThanOrEqualTo(3);
+        assertThat(login.permissions()).contains("rbac:role:write", "rbac:user:write");
 
         JsonNode users = getJson("/api/admin/users?keyword=admin", login.token());
         assertThat(users.path("code").asInt()).isZero();
@@ -56,20 +57,40 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
-    void reviewerMustChooseBetweenDsdRoles() throws Exception {
-        JsonNode conflict = loginRaw("reviewer", "Reviewer@12345", null);
+    void adminCanCreateRolesAndDsdConstraint() throws Exception {
+        LoginResult admin = login("admin", "Admin@12345", null);
+
+        long reviewerRole = createRole(admin.token(), "ROLE_TEST_REVIEWER", "测试审核员");
+        long publisherRole = createRole(admin.token(), "ROLE_TEST_PUBLISHER", "测试发布员");
+
+        Map<String, Object> constraint = new HashMap<>();
+        constraint.put("code", "DSD_TEST_MAKER_CHECKER");
+        constraint.put("name", "测试审核发布互斥");
+        constraint.put("type", "DSD");
+        constraint.put("maxRoles", 1);
+        constraint.put("description", "测试动态职责分离");
+        constraint.put("enabled", true);
+        constraint.put("roleIds", List.of(reviewerRole, publisherRole));
+        JsonNode createdConstraint = postJson("/api/admin/constraints", constraint, admin.token());
+        assertThat(createdConstraint.path("code").asInt()).isZero();
+
+        Map<String, Object> user = new HashMap<>();
+        user.put("username", "dsduser");
+        user.put("password", "PurpleLake@2026");
+        user.put("displayName", "DSD 用户");
+        user.put("email", "dsduser@example.com");
+        user.put("phone", "");
+        user.put("roleIds", List.of(reviewerRole, publisherRole));
+        JsonNode createdUser = postJson("/api/admin/users", user, admin.token());
+        assertThat(createdUser.path("code").asInt()).isZero();
+
+        JsonNode conflict = loginRaw("dsduser", "PurpleLake@2026", null);
         assertThat(conflict.path("code").asInt()).isEqualTo(40901);
         assertThat(conflict.path("data").path("roleChoiceRequired").asBoolean()).isTrue();
         assertThat(conflict.path("data").path("options").size()).isGreaterThan(0);
 
-        LoginResult reviewer = login("reviewer", "Reviewer@12345", List.of("ROLE_CONTENT_REVIEWER"));
-        assertThat(reviewer.permissions()).contains("resource:review");
-        assertThat(reviewer.permissions()).doesNotContain("resource:publish");
-        assertThat(reviewer.activeRoles()).containsExactly("ROLE_CONTENT_REVIEWER");
-
-        JsonNode both = loginRaw("reviewer", "Reviewer@12345",
-                List.of("ROLE_CONTENT_REVIEWER", "ROLE_PUBLISHER"));
-        assertThat(both.path("code").asInt()).isEqualTo(40901);
+        LoginResult single = login("dsduser", "PurpleLake@2026", List.of("ROLE_TEST_REVIEWER"));
+        assertThat(single.activeRoles()).containsExactly("ROLE_TEST_REVIEWER");
     }
 
     @Test
@@ -143,20 +164,20 @@ class AuthFlowIntegrationTest {
         assertThat(registered.path("data").path("user").path("username").asText()).isEqualTo("newuser");
         assertThat(registered.path("data").path("permissions").toString()).contains("resource:read");
 
-        JsonNode forgot = postJson("/api/auth/forgot", Map.of("account", "ops"), null);
+        JsonNode forgot = postJson("/api/auth/forgot", Map.of("account", "sso_user"), null);
         assertThat(forgot.path("code").asInt()).isZero();
         String resetCode = forgot.path("data").path("debugCode").asText();
         assertThat(resetCode).hasSize(6);
 
         JsonNode reset = postJson("/api/auth/reset", Map.of(
-                "account", "ops",
+                "account", "sso_user",
                 "code", resetCode,
                 "newPassword", "BlueLake@2026",
                 "confirmPassword", "BlueLake@2026"), null);
         assertThat(reset.path("code").asInt()).isZero();
 
-        LoginResult ops = login("ops", "BlueLake@2026", null);
-        assertThat(ops.code()).isZero();
+        LoginResult ssoUser = login("sso_user", "BlueLake@2026", null);
+        assertThat(ssoUser.code()).isZero();
     }
 
     @Test
@@ -216,6 +237,22 @@ class AuthFlowIntegrationTest {
                 objectMapper.convertValue(node.path("data").path("activeRoleCodes"),
                         objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)),
                 node.path("code").asInt());
+    }
+
+    private long createRole(String token, String code, String name) throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", code);
+        body.put("name", name);
+        body.put("description", "integration test role");
+        body.put("parentId", null);
+        body.put("maxMembers", null);
+        body.put("requiredRoleId", null);
+        body.put("sortOrder", 500);
+        JsonNode response = postJson("/api/admin/roles", body, token);
+        assertThat(response.path("code").asInt())
+                .withFailMessage("create role failed: %s", response)
+                .isZero();
+        return response.path("data").path("id").asLong();
     }
 
     private JsonNode loginRaw(String account, String password, List<String> roles) throws Exception {

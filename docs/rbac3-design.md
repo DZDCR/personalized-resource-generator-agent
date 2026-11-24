@@ -14,10 +14,6 @@
 
 ![角色管理](screenshots/rbac/03-roles.png)
 
-**DSD 角色选择**：reviewer 同时拥有审核员与发布员时，登录阶段必须选择一个激活角色。
-
-![DSD 登录后](screenshots/rbac/06-reviewer.png)
-
 ## 1. 目标与边界
 
 - 在现有「个性化资源生成与学习多智能体系统」中新增独立 `auth` 模块，不侵入原有学习业务。
@@ -41,18 +37,23 @@
 
 采用「派生角色继承基线角色权限」：`auth_role.parent_id` 指向被继承的基线角色。
 
+默认只内置三个互不继承的基线角色：
+
 ```text
-ROLE_SYS_ADMIN
-  └─ ROLE_SUPER_ADMIN
-ROLE_STUDENT
-  └─ ROLE_TEACHER
-       ├─ ROLE_CONTENT_REVIEWER
-       │    └─ ROLE_OPS_ADMIN
-       └─ ROLE_PUBLISHER
-ROLE_SECURITY_AUDITOR（独立）
+ROLE_STUDENT          学生（学习基础权限）
+ROLE_SYS_ADMIN        系统管理员（全部权限，用于创建/授权其他角色）
+ROLE_SECURITY_AUDITOR 安全审计员（只读审计）
 ```
 
-- 用户直接授予 `ROLE_CONTENT_REVIEWER` 后，有效角色为 `CONTENT_REVIEWER + TEACHER + STUDENT`。
+管理员可在权限中心创建派生角色，例如：
+
+```text
+ROLE_STUDENT
+  └─ ROLE_CUSTOM_TEACHER（继承学生）
+       └─ ROLE_CUSTOM_REVIEWER（继承教师）
+```
+
+- 用户直接授予 `ROLE_CUSTOM_REVIEWER` 后，有效角色为 `CUSTOM_REVIEWER + CUSTOM_TEACHER + STUDENT`。
 - 闭包表每行 `(ancestor_id, descendant_id, depth)` 表示「拥有 ancestor 即获得 descendant」；查询用户有效角色只需一次 JOIN。
 - 任何继承关系变更都会重建闭包，并递增所有用户 `token_version`，使旧刷新令牌失效。
 - 管理端角色树以基线角色为根、派生角色为子节点展示；表格「继承自」列即 `parent_id`。
@@ -67,10 +68,12 @@ ROLE_SECURITY_AUDITOR（独立）
 | 前置角色 | 分配角色时 | 必须先拥有 `required_role_id` 指定的角色 |
 | 用户角色数 | 分配角色时 | 默认最多 8 个直接角色（`app.auth.rbac.max-roles-per-user`） |
 
-内置约束：
+内置约束只保留：
 
 - `SSD_ADMIN_AUDITOR`：系统管理员与安全审计员互斥（阈值 1）。
-- `DSD_MAKER_CHECKER`：内容审核员与资源发布员不能在同一次会话同时激活（阈值 1）。
+
+DSD 不再内置：管理员创建两个互斥业务角色后，可在「职责分离约束」页新建 DSD 约束，
+例如审核员/发布员在单次会话中择一激活。
 
 DSD 冲突返回业务码 `40901`，`data` 中带 `options`（用户可激活角色），前端弹出角色选择框，用户选择后重新签发令牌。
 
@@ -201,14 +204,14 @@ DSD 冲突返回业务码 `40901`，`data` 中带 `options`（用户可激活角
 
 | 账号 | 密码 | 角色 | 用途 |
 | --- | --- | --- | --- |
-| `admin` | `Admin@12345` | 超级管理员 | 全部权限 |
-| `sysadmin` | `SysAdmin@12345` | 系统管理员 | RBAC 管理 |
+| `admin` | `Admin@12345` | 系统管理员 | 全部权限，创建/授权自定义角色 |
+| `sysadmin` | `SysAdmin@12345` | 系统管理员 | RBAC 管理备用账号 |
 | `auditor` | `Auditor@12345` | 安全审计员 | 只读审计/约束 |
-| `teacher` | `Teacher@12345` | 教师 | 资源生成 |
 | `student` | `Student@12345` | 学生 | 基础学习 |
-| `reviewer` | `Reviewer@12345` | 教师+审核员+发布员 | **触发 DSD 角色选择** |
-| `ops` | `Ops@12345` | 运营管理员 | 运营/用户查看 |
 | `sso_user` | `Sso@12345` | 学生 | 统一身份认证映射 |
+
+内置角色只有 **学生、系统管理员、安全审计员** 三个。教师、审核员、发布员、运营等角色
+不再内置，登录 `admin` 后在「角色管理 → 新建角色」自行创建并分配权限。
 
 ## 8. 运行方式
 

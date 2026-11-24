@@ -49,10 +49,10 @@
       <el-form label-position="top">
         <div class="grid-2">
           <el-form-item label="角色编码">
-            <el-input v-model="form.code" :disabled="Boolean(form.id)" placeholder="ROLE_CONTENT_REVIEWER" />
+            <el-input v-model="form.code" :disabled="Boolean(form.id)" placeholder="ROLE_CUSTOM_TEACHER" />
           </el-form-item>
           <el-form-item label="角色名称">
-            <el-input v-model="form.name" placeholder="内容审核员" />
+            <el-input v-model="form.name" placeholder="自定义教师" />
           </el-form-item>
         </div>
         <el-form-item label="描述">

@@ -83,8 +83,9 @@ npm run dev
 # Linux/macOS: VITE_API_TARGET=http://localhost:8081 npm run dev
 ```
 
-首次启动自动建表并写入演示账号。登录 `admin / Admin@12345`；`reviewer / Reviewer@12345`
-会触发动态职责分离（DSD）角色选择。完整模型见 [RBAC3 设计](docs/rbac3-design.md)。
+首次启动自动建表并写入演示账号。内置角色只保留 **学生、系统管理员、安全审计员** 三个，
+教师/审核员/发布员等业务角色请登录 `admin / Admin@12345` 后在权限中心自行创建。
+完整模型见 [RBAC3 设计](docs/rbac3-design.md)。
 
 ### Docker 完整部署
 
