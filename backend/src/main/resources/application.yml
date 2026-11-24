@@ -50,6 +50,32 @@ spring:
           temperature: 0.7
 
 
+spring.rabbitmq:
+  host: localhost
+  port: 5672
+  username: learning
+  password: learning123
+
+app:
+  qdrant:
+    host: localhost
+    port: 6333
+    collection: learning_resources
+  llm:
+    # 模型路由：长文档用推理模型，画像/短对话用对话模型（DeepSeek）
+    heavy-model: deepseek-reasoner
+    light-model: deepseek-chat
+    max-retries: 3
+    timeout-sec: 120
+  resources:
+    # 生成资源的根目录
+    storage-root: ./data/resources
+  path:
+    checkpoint-pass-rate: 0.8
+  im:
+    # 课程演示：首次启动自动创建三名学生与一个课程群；生产可改为 false
+    seed-demo: true
+
   upload:
     # 前端分片大小：8MB（tusd 再按 16MB 的 S3 part 聚合，S3 最小 part 为 5MB）
     chunk-size: 8388608
@@ -119,31 +145,6 @@ spring:
       # 单文件上限：超过就该走 tus 分片，否则要整份读进内存、断了得重传
       max-file-size: ${UPLOAD_BATCH_MAX_FILE_SIZE:10485760}
       max-total-size: ${UPLOAD_BATCH_MAX_TOTAL_SIZE:52428800}
-spring.rabbitmq:
-  host: localhost
-  port: 5672
-  username: learning
-  password: learning123
-
-app:
-  qdrant:
-    host: localhost
-    port: 6333
-    collection: learning_resources
-  llm:
-    # 模型路由：长文档用推理模型，画像/短对话用对话模型（DeepSeek）
-    heavy-model: deepseek-reasoner
-    light-model: deepseek-chat
-    max-retries: 3
-    timeout-sec: 120
-  resources:
-    # 生成资源的根目录
-    storage-root: ./data/resources
-  path:
-    checkpoint-pass-rate: 0.8
-  im:
-    # 课程演示：首次启动自动创建三名学生与一个课程群；生产可改为 false
-    seed-demo: true
 
 logging:
   level:
