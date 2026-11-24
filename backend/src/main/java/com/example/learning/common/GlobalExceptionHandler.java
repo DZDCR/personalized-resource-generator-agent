@@ -18,8 +18,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BizException.class)
     @ResponseStatus(HttpStatus.OK)
-    public ApiResult<Void> handleBiz(BizException ex) {
-        return ApiResult.error(ex.getCode(), ex.getMessage());
+    public ApiResult<Object> handleBiz(BizException ex) {
+        return ApiResult.error(ex.getCode(), ex.getMessage(), ex.getData());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

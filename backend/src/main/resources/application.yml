@@ -49,6 +49,26 @@ spring.rabbitmq:
   password: learning123
 
 app:
+  auth:
+    # 生产环境务必通过环境变量覆盖密钥，并关闭 dev-mode
+    dev-mode: ${AUTH_DEV_MODE:false}
+    seed-enabled: ${AUTH_SEED_ENABLED:true}
+    secure-cookie: ${AUTH_SECURE_COOKIE:false}
+    jwt:
+      secret: ${AUTH_JWT_SECRET:learning-agent-rbac3-dev-secret-change-me-2026}
+      issuer: ${AUTH_JWT_ISSUER:learning-agent}
+      access-ttl-minutes: ${AUTH_ACCESS_TTL_MINUTES:15}
+      refresh-ttl-days: ${AUTH_REFRESH_TTL_DAYS:7}
+    sso:
+      client-id: ${AUTH_SSO_CLIENT_ID:learning-web}
+      client-secret: ${AUTH_SSO_CLIENT_SECRET:sso-demo-secret}
+      provider: ${AUTH_SSO_PROVIDER:OIDC-DEMO}
+    lock:
+      max-failed-attempts: ${AUTH_MAX_FAILED_ATTEMPTS:5}
+      lock-minutes: ${AUTH_LOCK_MINUTES:15}
+    cors:
+      allowed-origins:
+        - ${AUTH_CORS_ORIGIN:http://localhost:5173}
   qdrant:
     host: localhost
     port: 6333

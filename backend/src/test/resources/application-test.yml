@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:authtest;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  ai:
+    openai:
+      api-key: sk-test-not-used
+
+app:
+  auth:
+    dev-mode: true
+    seed-enabled: true
+    secure-cookie: false
+    captcha:
+      enabled: false
+    jwt:
+      secret: auth-test-secret-at-least-32-bytes-long-2026
+      issuer: learning-agent-test
+      access-ttl-minutes: 15
+      refresh-ttl-days: 7
+    sso:
+      client-id: learning-web
+      client-secret: sso-demo-secret
+      provider: OIDC-DEMO
+      redirect-uris:
+        - http://localhost:5173/sso/callback
+    cors:
+      allowed-origins:
+        - http://localhost:5173
+
+logging:
+  level:
+    org.springframework.security: WARN
+    com.example.learning.auth: INFO

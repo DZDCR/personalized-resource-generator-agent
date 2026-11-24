@@ -39,6 +39,16 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+        <!-- 认证与授权：Spring Security + JWT（RBAC3 模块使用） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
         <!-- 数据层 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -85,6 +95,10 @@
 
         <!-- 工具 -->
         <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
@@ -101,15 +115,32 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- 测试 -->
+        <!-- 测试 / 独立演示环境 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <repositories>
+        <!-- 先查中央仓库，未命中的 Spring AI 里程碑版本再查 spring-milestones，避免每个依赖先等 milestone 超时 -->
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
         <repository>
             <id>spring-milestones</id>
             <name>Spring Milestones</name>
@@ -136,6 +167,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>com.example.learning.LearningApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

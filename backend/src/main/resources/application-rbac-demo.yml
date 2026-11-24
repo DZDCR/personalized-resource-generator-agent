@@ -1,0 +1,54 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:rbac;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+  ai:
+    openai:
+      api-key: sk-rbac-demo-not-used
+
+app:
+  auth:
+    dev-mode: true
+    seed-enabled: true
+    secure-cookie: false
+    jwt:
+      secret: rbac3-demo-secret-please-change-in-production-2026
+      access-ttl-minutes: 15
+      refresh-ttl-days: 7
+    sso:
+      client-id: learning-web
+      client-secret: sso-demo-secret
+      provider: OIDC-DEMO
+      redirect-uris:
+        - http://localhost:5173/sso/callback
+        - http://127.0.0.1:5173/sso/callback
+        - http://localhost:8081/sso/callback
+    cors:
+      allowed-origins:
+        - http://localhost:5173
+        - http://127.0.0.1:5173
+
+logging:
+  level:
+    com.example.learning.auth: DEBUG
