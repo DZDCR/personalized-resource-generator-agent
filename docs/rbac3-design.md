@@ -19,7 +19,7 @@
 - 在现有「个性化资源生成与学习多智能体系统」中新增独立 `auth` 模块，不侵入原有学习业务。
 - 认证交给 **Spring Security**（`SecurityFilterChain`、`DaoAuthenticationProvider`、`AuthenticationManager`、JWT Resource Server）。
 - 授权交给 **Spring Security Method Security**（`@PreAuthorize` + JWT 中的 `perms` Authority）。
-- 数据使用 **Spring Data JPA**，与现有 PostgreSQL 部署一致；测试/演示用 H2。
+- 数据使用 **Spring Data JPA**，与现有 PostgreSQL 部署一致；测试用 H2 内存库，演示用 HSQLDB 文件库。
 - 前端使用现有 **Vue3 + Element Plus**，新增登录、注册、找回密码、权限中心页面。
 
 ## 2. 权限模型（RBAC3）
@@ -227,14 +227,16 @@ npm install && npm run dev
 
 首次启动自动建表并写入内置角色/权限/演示账号（仅当 `auth_role` 为空）。
 
-### 8.2 独立 RBAC 演示（H2，无需外部中间件）
+### 8.2 独立 RBAC 演示（HSQLDB 文件库，无需外部中间件）
 
 ```bash
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=rbac-demo
 ```
 
-`rbac-demo` profile 使用 H2，并在 `spring.autoconfigure.exclude` 中关闭 Redis/Neo4j/RabbitMQ；
+`rbac-demo` profile 使用 **HSQLDB 文件库** `backend/data/rbac.script`（另有 `.properties`），
+并在 `spring.autoconfigure.exclude` 中关闭 Redis/Neo4j/RabbitMQ；自建角色、用户和约束在重启后保留，
+删除 `backend/data` 可重置。停止后端建议按 `Ctrl+C` 或调用 `POST /actuator/shutdown`，让文件库正常落盘。
 启动的是主应用，登录/RBAC 接口不依赖外部中间件。后端 `http://localhost:8081`；前端：
 
 ```bash

@@ -38,6 +38,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
+        <!-- 演示 profile 使用 /actuator/shutdown 优雅关闭，确保 H2 文件库正常落盘 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <!-- 认证与授权：Spring Security + JWT（RBAC3 模块使用） -->
         <dependency>
@@ -119,6 +124,13 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- rbac-demo profile 的文件数据库：HSQLDB 在当前 Windows 沙箱下可稳定重开写入 -->
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <version>2.7.4</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

@@ -62,7 +62,7 @@ git commit -m "feat(auth): 新增 RBAC3 身份认证与权限管理模块" \
 - RBAC0 授予 + RBAC1 闭包继承 + RBAC2 SSD/DSD/基数/前置角色
 - Spring Security JWT + 刷新令牌轮换 + 审计日志
 - Vue3 登录/注册/找回密码/权限中心 5 个管理页
-- 补充 H2 独立演示 profile 与 7 个集成测试"
+- 补充 HSQLDB 文件库独立演示 profile 与 7 个集成测试"
 ```
 
 按需拆分提交（推荐小步提交）：

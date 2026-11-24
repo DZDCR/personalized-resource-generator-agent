@@ -3,14 +3,21 @@ server:
 
 spring:
   datasource:
-    url: jdbc:h2:mem:rbac;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
-    driver-class-name: org.h2.Driver
+    # HSQLDB 文件模式：自建角色/用户/约束在后端重启后仍保留；删除 backend/data 目录可重置演示数据。
+    # jsonb 是给学习业务实体用的 PostgreSQL 类型，这里用 HSQLDB DOMAIN 兼容。
+    url: jdbc:hsqldb:file:./data/rbac;shutdown=true;sql.syntax_pgs=true;hsqldb.lock_file=false
+    driver-class-name: org.hsqldb.jdbc.JDBCDriver
     username: sa
     password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-hsqldb.sql
+      continue-on-error: true
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.HSQLDialect
     show-sql: false
     properties:
       hibernate:
@@ -48,6 +55,16 @@ app:
       allowed-origins:
         - http://localhost:5173
         - http://127.0.0.1:5173
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # 仅在演示 profile 暴露 shutdown，用于优雅关闭 HSQLDB 文件库
+        include: health,shutdown
+  endpoint:
+    shutdown:
+      enabled: true
 
 logging:
   level:

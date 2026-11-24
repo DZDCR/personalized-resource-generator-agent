@@ -62,14 +62,15 @@ npm run dev
 
 访问 `http://localhost:5173`。
 
-### 方式三：RBAC3 独立演示（H2，无需 PostgreSQL/Redis/Neo4j/RabbitMQ）
+### 方式三：RBAC3 独立演示（HSQLDB 文件库，无需 PostgreSQL/Redis/Neo4j/RabbitMQ）
 
 ```bash
 cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=rbac-demo
 ```
 
-该 profile 使用 H2，并排除 Redis/Neo4j/RabbitMQ 自动配置，无需启动任何中间件；
+该 profile 使用 **HSQLDB 文件库**（`backend/data/rbac.script` 等），并排除 Redis/Neo4j/RabbitMQ 自动配置；
+自建角色、用户和约束在后端重启后仍会保留。删除 `backend/data` 目录即可重置演示数据。
 登录与权限中心接口可直接使用（主应用其余接口仍可能需要完整基础设施）。
 
 另开终端启动前端，并把代理指向 8081：
@@ -143,7 +144,7 @@ learning-agent-system/
 │       │   └── common/                  # ApiResult / BizException / 全局异常处理
 │       └── resources/
 │           ├── application.yml          # 数据库/Redis/Neo4j/Qdrant/Spring AI 配置
-│           ├── application-rbac-demo.yml# H2 独立演示配置
+│           ├── application-rbac-demo.yml# HSQLDB 独立演示配置
 │           └── prompt/                  # 9 个 Prompt 模板（.md，支持热更新）
 │
 ├── frontend/                            # Vue3 + Vite 前端
