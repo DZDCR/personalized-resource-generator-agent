@@ -8,6 +8,13 @@ spring:
       - org.springframework.boot.autoconfigure.r2dbc.R2dbcTransactionManagerAutoConfiguration
   application:
     name: learning-agent-system
+  servlet:
+    multipart:
+      # 小文件批量导入：阈值与单文件上限一致，≤10MB 全程在内存处理，
+      # 不落系统临时目录（Windows 临时目录在 C 盘，项目要求临时数据不进 C 盘）
+      max-file-size: 10MB
+      max-request-size: 50MB
+      file-size-threshold: 10MB
   threads:
     virtual:
       enabled: true
@@ -42,6 +49,76 @@ spring:
           model: ${OPENAI_MODEL:deepseek-chat}
           temperature: 0.7
 
+
+  upload:
+    # 前端分片大小：8MB（tusd 再按 16MB 的 S3 part 聚合，S3 最小 part 为 5MB）
+    chunk-size: 8388608
+    max-concurrent-uploads: 3
+    tusd:
+      # 服务端内部地址，仅用于终止上传；浏览器走 nginx 同源 /files/
+      base-url: ${TUSD_BASE_URL:http://localhost:1080}
+      public-path: /files/
+    storage:
+      endpoint: ${RUSTFS_ENDPOINT:http://localhost:9000}
+      bucket: ${RUSTFS_BUCKET:learning-uploads}
+      # 启动时自动建桶（私有）；生产可设 false，改由运维预置桶与最小权限账号
+      auto-create-bucket: ${RUSTFS_AUTO_CREATE_BUCKET:true}
+      # 下发桶生命周期规则：中止长时间未完成的 Multipart 上传，释放已写分片
+      lifecycle-enabled: ${RUSTFS_LIFECYCLE_ENABLED:true}
+      abort-incomplete-multipart-days: ${RUSTFS_ABORT_MPU_DAYS:7}
+      # 必须与 tusd 的 -s3-object-prefix 一致，否则规则不生效
+      object-prefix: ${RUSTFS_OBJECT_PREFIX:uploads/}
+      access-key: ${RUSTFS_ACCESS_KEY:rustfsadmin}
+      secret-key: ${RUSTFS_SECRET_KEY:rustfsadmin}
+      region: ${RUSTFS_REGION:us-east-1}
+    security:
+      # 生产必须通过环境变量覆盖，长度建议 >= 32 字节随机串
+      signing-key: ${UPLOAD_SIGNING_KEY:dev-only-change-me-please-32bytes}
+      token-ttl-minutes: 120
+      max-file-size: 5368709120
+      allowed-extensions:
+        - pdf
+        - doc
+        - docx
+        - ppt
+        - pptx
+        - xls
+        - xlsx
+        - csv
+        - md
+        - txt
+        - zip
+        - png
+        - jpg
+        - jpeg
+        - gif
+        - webp
+        - mp4
+        - mp3
+    # 残留上传清理：UPLOADING 长期不动即回收分片与记录
+    cleanup:
+      enabled: ${UPLOAD_CLEANUP_ENABLED:true}
+      # 超过该小时数仍未完成的上传会被回收；默认 7 天，宁慢勿错
+      uploading-ttl-hours: ${UPLOAD_CLEANUP_TTL_HOURS:168}
+      batch-size: ${UPLOAD_CLEANUP_BATCH_SIZE:100}
+      # 每天 03:17 执行，避开上传高峰
+      cron: "${UPLOAD_CLEANUP_CRON:0 17 3 * * ?}"
+    # 下载传输参数：直接决定并发下载能力
+    download:
+      # 到 RustFS 的最大连接数。每条进行中的下载独占一条连接，
+      # SDK 默认 50 会成为并发的硬上限，第 51 个请求会卡在取连接上直到超时
+      max-connections: ${UPLOAD_DOWNLOAD_MAX_CONNECTIONS:200}
+      connection-timeout-seconds: ${UPLOAD_DOWNLOAD_CONNECT_TIMEOUT:5}
+      # 两次数据之间的读超时，不是总时长；默认 30s 会让慢速客户端被误断
+      socket-timeout-seconds: ${UPLOAD_DOWNLOAD_SOCKET_TIMEOUT:300}
+      # 连接池满时排队等待上限，宁可排队也不要直接失败
+      acquire-timeout-seconds: ${UPLOAD_DOWNLOAD_ACQUIRE_TIMEOUT:60}
+    # 小文件批量导入（一次 multipart 请求多个文件，直写对象存储）
+    batch:
+      max-files: ${UPLOAD_BATCH_MAX_FILES:20}
+      # 单文件上限：超过就该走 tus 分片，否则要整份读进内存、断了得重传
+      max-file-size: ${UPLOAD_BATCH_MAX_FILE_SIZE:10485760}
+      max-total-size: ${UPLOAD_BATCH_MAX_TOTAL_SIZE:52428800}
 spring.rabbitmq:
   host: localhost
   port: 5672

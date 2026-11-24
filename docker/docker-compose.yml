@@ -56,6 +56,101 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: learning-rustfs
+    environment:
+      RUSTFS_VOLUMES: /data/rustfs{0...3}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      RUSTFS_OBS_LOGGER_LEVEL: info
+      RUSTFS_OBS_LOG_DIRECTORY: /app/logs
+      # 本地单盘环境：4 个卷落在同一物理盘，erasure 的“独立磁盘”校验会拒绝启动。
+      # 生产部署请改为真实多盘，或去掉该项并改单卷路径。
+      RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
+    ports:
+      - "9000:9000"   # S3 API（tusd 与服务端 SDK 使用）
+      - "9001:9001"   # Web Console
+    volumes:
+      - rustfs_data_0:/data/rustfs0
+      - rustfs_data_1:/data/rustfs1
+      - rustfs_data_2:/data/rustfs2
+      - rustfs_data_3:/data/rustfs3
+      - rustfs_logs:/app/logs
+    depends_on:
+      rustfs-permission-helper:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # RustFS 以 10001:10001 运行，命名卷首次挂载需修正权限
+  rustfs-permission-helper:
+    image: alpine:3.20
+    container_name: learning-rustfs-perms
+    volumes:
+      - rustfs_data_0:/data/rustfs0
+      - rustfs_data_1:/data/rustfs1
+      - rustfs_data_2:/data/rustfs2
+      - rustfs_data_3:/data/rustfs3
+      - rustfs_logs:/app/logs
+    command: >
+      sh -c "chown -R 10001:10001 /data/rustfs0 /data/rustfs1 /data/rustfs2 /data/rustfs3 /app/logs
+      && echo 'rustfs volumes ready'"
+    restart: "no"
+
+  # ------------------------------------------------------------------
+  # tusd：只负责接收分片、写 S3 Multipart、回调业务服务
+  # 分片在 RustFS 内合并，tusd 不落完整文件
+  # 注意：bucket 由后端启动时自动创建（RustFsBucketInitializer），
+  #      不再依赖 minio/mc 初始化容器（MinIO 已从 Docker Hub 下架该镜像）。
+  # ------------------------------------------------------------------
+  tusd:
+    # 如该 tag 拉取失败，可改为 tusproject/tusd:latest
+    image: tusproject/tusd:v2.4.0
+    container_name: learning-tusd
+    command:
+      # v2.4.0 默认监听 8080，这里显式指定，避免不同版本默认端口不一致
+      - "-port=1080"
+      - "-s3-bucket=${RUSTFS_BUCKET:-learning-uploads}"
+      - "-s3-endpoint=http://rustfs:9000"
+      - "-s3-object-prefix=uploads/"
+      # 每个 S3 part 16MB；前端分片 8MB，tusd 聚合两片后提交一个 part
+      - "-s3-part-size=16777216"
+      - "-s3-max-buffered-parts=4"
+      - "-s3-concurrent-part-uploads=4"
+      # 非 AWS 实现（RustFS/MinIO）对 SDK 的 CRC 校验头兼容性有限，关闭更稳
+      - "-s3-disable-content-hashes"
+      - "-max-size=${UPLOAD_MAX_SIZE:-5368709120}"
+      # 让 tusd 信任 nginx 的 X-Forwarded-*，生成正确的 uploadUrl
+      - "-behind-proxy"
+      - "-base-path=/files/"
+      # Hook：权限校验 + 落库，全部交给 SpringBoot
+      # 若后端跑在宿主机（本地开发），用 TUSD_HOOKS_URL 覆盖为 host.docker.internal
+      - "-hooks-http=${TUSD_HOOKS_URL:-http://backend:8080/api/upload/hooks}"
+      - "-hooks-enabled-events=pre-create,post-create,post-finish,post-terminate"
+      - "-hooks-http-forward-headers=Authorization,X-Upload-Token,X-Student-Id"
+    environment:
+      # tusd 通过 AWS 默认凭证链读取，不接受命令行密钥参数
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      AWS_REGION: ${RUSTFS_REGION:-us-east-1}
+    ports:
+      - "1080:1080"
+    # 便于本地开发时回调宿主机上的后端
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      rustfs:
+        condition: service_healthy
+
   backend:
     build:
       context: ../backend
