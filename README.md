@@ -11,10 +11,21 @@
 | 个性化学习路径 | 基于知识图谱拓扑排序 + 画像匹配资源推荐 | 骨架 |
 | 智能辅导 | 概念 / 计算 / 代码三类问题的多模态解答 | 骨架 |
 | 学习效果评估 | 周评估 + 画像回写 + 路径动态调整 | 骨架 |
+| **RBAC3 身份认证与权限管理** | 4 种登录方式、图形验证码、注册/找回密码、角色继承、SSD/DSD 约束、审计 | 可用 |
+
+## RBAC3 权限模块预览
+
+登录页支持账号密码 / 邮箱验证码 / 短信验证码 / 统一身份认证四种方式；权限中心覆盖用户、角色继承、权限点、SSD/DSD 约束与审计日志。
+
+![登录页](docs/screenshots/rbac/01-login.png)
+
+![权限中心](docs/screenshots/rbac/02-users.png)
+
+详细设计与演示账号见 [RBAC3 设计](docs/rbac3-design.md)。
 
 ## 技术栈
 
-- 后端：Java 21 + Spring Boot 3.3 + Spring AI + Spring Data JPA + Qdrant + Neo4j + Redis + RabbitMQ
+- 后端：Java 21 + Spring Boot 3.3 + Spring Security（JWT / Method Security）+ Spring Data JPA + Qdrant + Neo4j + Redis + RabbitMQ
 - 前端：Vue3 + Vite + Pinia + Element Plus + WebSocket 进度推送
 - 基础设施：PostgreSQL / Redis / RabbitMQ / Neo4j / Qdrant（docker-compose 一键启动）
 
@@ -51,6 +62,30 @@ npm run dev
 
 访问 `http://localhost:5173`。
 
+### 方式三：RBAC3 独立演示（H2，无需 PostgreSQL/Redis/Neo4j/RabbitMQ）
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=rbac-demo
+```
+
+该 profile 使用 H2，并排除 Redis/Neo4j/RabbitMQ 自动配置，无需启动任何中间件；
+登录与权限中心接口可直接使用（主应用其余接口仍可能需要完整基础设施）。
+
+另开终端启动前端，并把代理指向 8081：
+
+```bash
+cd frontend
+npm install
+# Windows PowerShell
+$env:VITE_API_TARGET="http://localhost:8081"
+npm run dev
+# Linux/macOS: VITE_API_TARGET=http://localhost:8081 npm run dev
+```
+
+首次启动自动建表并写入演示账号。登录 `admin / Admin@12345`；`reviewer / Reviewer@12345`
+会触发动态职责分离（DSD）角色选择。完整模型见 [RBAC3 设计](docs/rbac3-design.md)。
+
 ### Docker 完整部署
 
 ```bash
@@ -66,7 +101,8 @@ docker compose -f docker/docker-compose.yml up -d
 | [架构设计](docs/architecture.md) | 系统架构、分层规则、多智能体编排协议、画像规范、路径算法、技术选型 |
 | [开发规范](docs/dev-guide.md) | 工程环境、命名规范、编码约定、分层禁止项、Review 清单 |
 | [API 接口规范](docs/api-spec.md) | 10 个接口定义、请求/响应示例、WebSocket 进度推送、状态码 |
-| [数据字典](docs/data-dictionary.md) | 9 张数据表结构、列约束、索引设计、关联关系 |
+| [数据字典](docs/data-dictionary.md) | 业务表 + `auth_*` RBAC 表结构、列约束、索引设计、关联关系 |
+| [RBAC3 设计](docs/rbac3-design.md) | 认证流程、RBAC0/1/2 模型、SSD/DSD、API、演示账号、作业对照 |
 | [Git 协作规范](docs/git-guide.md) | 分支模型、提交规范、PR 规范、工作流示例 |
 | [成文标准](docs/成文标准.md) | 五类文档的质量要求与评分对照表 |
 
@@ -97,19 +133,28 @@ learning-agent-system/
 │       │   ├── repository/              # 8 个 Spring Data 接口
 │       │   ├── service/                 # 8 个 Service（Profile/Path/Resource/Tutor/...）
 │       │   ├── job/                     # 3 个定时任务骨架
+│       │   ├── auth/                    # ★ RBAC3 认证与授权模块
+│       │   │   ├── config/              #   SecurityConfig / JWT / 初始化
+│       │   │   ├── controller/          #   登录、注册、找回密码、管理端
+│       │   │   ├── entity/repository/   #   用户/角色/权限/闭包/约束/审计
+│       │   │   ├── service/             #   慢哈希、验证码、令牌、RBAC 查询
+│       │   │   └── security/            #   PasswordEncoder / JWT / 401/403
 │       │   └── common/                  # ApiResult / BizException / 全局异常处理
 │       └── resources/
 │           ├── application.yml          # 数据库/Redis/Neo4j/Qdrant/Spring AI 配置
+│           ├── application-rbac-demo.yml# H2 独立演示配置
 │           └── prompt/                  # 9 个 Prompt 模板（.md，支持热更新）
 │
 ├── frontend/                            # Vue3 + Vite 前端
 │   ├── package.json / vite.config.js / index.html
 │   └── src/
 │       ├── views/                       # Chat / Resources / PathMap / Dashboard
+│       │   ├── auth/                    # 登录 / 注册 / 找回密码 / SSO 回调
+│       │   └── admin/                   # 用户 / 角色 / 权限 / 约束 / 审计
 │       ├── components/                  # ProgressBar / MindmapViewer / CodeBlock / QuizCard / PathTimeline / WsProgress
-│       ├── stores/                      # Pinia: chat / resource / path / assessment
-│       ├── api/                         # Axios 封装 + 8 个 API 函数
-│       ├── router/                      # Vue Router 路由配置
+│       ├── stores/                      # Pinia: chat / resource / path / assessment / auth
+│       ├── api/                         # Axios 封装 + 业务/认证/RBAC API
+│       ├── router/                      # Vue Router 路由 + 登录/权限守卫
 │       └── styles/                      # 全局样式
 │
 ├── docker/                              # 基础设施 + 应用部署
@@ -117,12 +162,15 @@ learning-agent-system/
 │   ├── Dockerfile.backend
 │   └── Dockerfile.frontend + nginx.conf
 │
-├── docs/                                # 标准规范文档（6 份）
+├── docs/                                # 标准规范文档（8 份）
 │   ├── architecture.md                  # 架构设计
 │   ├── dev-guide.md                     # 开发规范
 │   ├── api-spec.md                      # API 接口规范
 │   ├── data-dictionary.md               # 数据字典
+│   ├── rbac3-design.md                  # RBAC3 身份认证与权限设计
+│   ├── rbac3-branch-push.md             # 分支推送指南
 │   ├── git-guide.md                     # Git 协作规范
+│   ├── screenshots/rbac/                # 登录/权限中心截图
 │   └── 成文标准.md                       # 文档质量标准
 │
 ├── run.bat / run.sh                     # 一键启动脚本

@@ -122,7 +122,63 @@
 | report_json | jsonb | N | 维度得分 + LLM 报告 + 调整指令 |
 | created_at | timestamptz | Y | |
 
-## 10. 索引与约束清单（建议）
+## 10. 认证与 RBAC3 表（`auth_*`）
+
+> 代码：`backend/.../auth/entity/*.java`。首次启动由 `AuthDataInitializer` 写入内置角色/权限/演示账号。
+> 详细模型见 [RBAC3 设计](rbac3-design.md)。
+
+### auth_user 用户表
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| id | bigint PK | |
+| username | varchar(64) UNIQUE | 登录名，小写 |
+| display_name | varchar(64) | 昵称 |
+| email / phone | varchar(128) / varchar(32) | 唯一，可空 |
+| password_salt | varchar(64) | Base64 随机盐 |
+| password_hash | varchar(128) | Base64 PBKDF2 派生值 |
+| password_algo / password_iterations | varchar / int | `PBKDF2-SHA256` / 210000 |
+| status | varchar(16) | ACTIVE / DISABLED |
+| failed_attempts / locked_until | int / timestamptz | 连续失败锁定 |
+| token_version | int | 令牌版本，变更即失效旧刷新令牌 |
+| last_login_at / last_login_ip | timestamptz / varchar(64) | |
+| created_at / updated_at | timestamptz | |
+
+### auth_role 角色表
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| id | bigint PK | |
+| code | varchar(64) UNIQUE | `ROLE_XXX` |
+| name / description | varchar | |
+| parent_id | bigint | 继承自的基线角色（沿链传递继承） |
+| max_members | int | RBAC2 基数上限，空为不限 |
+| required_role_id | bigint | 前置角色 |
+| built_in / sort_order | boolean / int | |
+
+### auth_permission 权限表
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| id | bigint PK | |
+| code | varchar(128) UNIQUE | `resource:review`，即 Authority |
+| name / type / parent_id | varchar / enum / bigint | 菜单/接口/按钮树 |
+| built_in / sort_order | boolean / int | |
+
+### 关系表
+
+| 表 | 关键列 | 说明 |
+| --- | --- | --- |
+| auth_user_role | user_id, role_id, granted_by, granted_at | 用户-角色授予，唯一约束 |
+| auth_role_permission | role_id, permission_id | 角色-权限授予，唯一约束 |
+| auth_role_closure | ancestor_id, descendant_id, depth | 继承闭包，含自身 depth=0 |
+| auth_constraint | code, type(SSD/DSD), max_roles, enabled | 职责分离约束 |
+| auth_constraint_role | constraint_id, role_id | 约束成员 |
+| auth_refresh_token | token_hash, user_id, active_role_codes, token_version, expires_at, revoked | 刷新令牌摘要，轮换/吊销 |
+| auth_identity | provider, subject, user_id | 外部统一身份映射 |
+| auth_audit_log | event_type, username, user_id, success, ip, user_agent, detail, created_at | 安全审计 |
+
+## 11. 索引与约束清单（建议）
 
 | 表 | 索引/约束 | 用途 |
 |----|----------|------|
